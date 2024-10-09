@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024, Retroid Pocket.
+ */
+
+/dts-v1/;
+
+#include "sm8250-retroidpocket-common.dtsi"
+
+/ {
+	model = "Retroid Pocket Mini";
+	compatible = "retroidpocket,rpmini", "qcom,sm8250";
+
+	chosen {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		framebuffer: framebuffer@9c000000 {
+			compatible = "simple-framebuffer";
+			reg = <0x0 0x9c000000 0x0 0x2300000>;
+			width = <960>;
+			height = <1280>;
+			stride = <(960 * 4)>;
+			format = "a8r8g8b8";
+		};
+	};
+};
+
+&i2c13 {
+	touchscreen@38 {
+		touchscreen-size-x = <960>;
+		touchscreen-size-y = <1280>;
+	};
+};
+
+&mdss_dsi0 {
+	panel@0 {
+		compatible = "ch13726a,rpmini";
+		rotation = <90>;
+	};
+};
