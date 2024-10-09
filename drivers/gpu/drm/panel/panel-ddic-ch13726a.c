@@ -25,6 +25,7 @@ struct ch13726a_panel {
 	struct drm_dsc_config dsc;
 	struct regulator_bulk_data supplies[4];
 	struct gpio_desc *reset_gpio;
+	const struct drm_display_mode *display_mode;
 	enum drm_panel_orientation orientation;
 	bool prepared;
 };
@@ -141,7 +142,7 @@ static int ch13726a_unprepare(struct drm_panel *panel)
 	return 0;
 }
 
-static const struct drm_display_mode ch13726a_mode = {
+static const struct drm_display_mode rpmini_display_mode = {
 	.clock = (960 + 28 + 4 + 36) * (1280 + 16 + 4 + 8) * 60 / 1000,
 	.hdisplay = 960,
 	.hsync_start = 960 + 28,
@@ -155,12 +156,27 @@ static const struct drm_display_mode ch13726a_mode = {
 	.height_mm = 75,
 };
 
+static const struct drm_display_mode rp5_display_mode = {
+	.clock = (1080 + 12 + 4 + 12) * (1920 + 12 + 12 + 4) * 60 / 1000,
+	.hdisplay = 1080,
+	.hsync_start = 1080 + 12,
+	.hsync_end = 1080 + 12 + 4,
+	.htotal = 1080 + 12 + 4 + 12,
+	.vdisplay = 1920,
+	.vsync_start = 1920 + 12,
+	.vsync_end = 1920 + 12 + 12,
+	.vtotal = 1920 + 12 + 12 + 4,
+	.width_mm = 68,
+	.height_mm = 121,
+};
+
 static int ch13726a_get_modes(struct drm_panel *panel,
 					struct drm_connector *connector)
 {
+	struct ch13726a_panel *ctx = to_ch13726a_panel(panel);
 	struct drm_display_mode *mode;
 
-	mode = drm_mode_duplicate(connector->dev, &ch13726a_mode);
+	mode = drm_mode_duplicate(connector->dev, ctx->display_mode);
 	if (!mode)
 		return -ENOMEM;
 
@@ -235,6 +251,8 @@ static int ch13726a_probe(struct mipi_dsi_device *dsi)
 	if (!ctx)
 		return -ENOMEM;
 
+	ctx->display_mode = of_device_get_match_data(dev);
+
 	ctx->supplies[0].supply = "vdd1v2";
 	ctx->supplies[1].supply = "vddio";
 	ctx->supplies[2].supply = "vdd";
@@ -306,8 +324,9 @@ static void ch13726a_remove(struct mipi_dsi_device *dsi)
 }
 
 static const struct of_device_id ch13726a_of_match[] = {
-	{ .compatible = "ddic,ch13726a" },
-	{ }
+	{ .compatible = "ch13726a,rpmini", .data = &rpmini_display_mode },
+	{ .compatible = "ch13726a,rp5", .data = &rp5_display_mode },
+	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, ch13726a_of_match);
 
