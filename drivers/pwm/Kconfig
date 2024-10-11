@@ -257,6 +257,16 @@ config PWM_HIBVT
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-hibvt.
 
+config PWM_HTR3212
+	tristate "HEROIC HTR3212 PWM driver"
+	depends on I2C
+	select REGMAP_I2C
+	help
+	  Generic PWM framework driver for HEROIC HTR3212 LED controller.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called pwm-htr3212.
+
 config PWM_IMG
 	tristate "Imagination Technologies PWM driver"
 	depends on HAS_IOMEM
