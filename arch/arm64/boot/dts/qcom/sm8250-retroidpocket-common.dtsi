@@ -569,6 +569,32 @@
 	};
 };
 
+&i2c3 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	htr3212r: htr3212@3c {
+		compatible = "heroic,htr3212-pwm";
+		reg = <0x3c>;
+		vdd-supply = <&vreg_mcu_3v3>;
+		sdb-gpios = <&tlmm 6 GPIO_ACTIVE_HIGH>;
+		#pwm-cells = <1>;
+	};
+};
+
+&i2c5 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	htr3212l: htr3212@3c {
+		compatible = "heroic,htr3212-pwm";
+		reg = <0x3c>;
+		vdd-supply = <&vreg_mcu_3v3>;
+		sdb-gpios = <&tlmm 5 GPIO_ACTIVE_HIGH>;
+		#pwm-cells = <1>;
+	};
+};
+
 &i2c13 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -658,16 +684,13 @@
 
 	panel@0 {
 		reg = <0>;
+
 		reset-gpios = <&tlmm 75 GPIO_ACTIVE_HIGH>;
 
 		vdd1v2-supply = <&vreg_l3c_1p2>;
 		vddio-supply = <&vreg_l14a_1p8>;
 		vdd-supply = <&vreg_l11c_3p3>;
 		avdd-supply = <&vdda_panel>;
-
-		pinctrl-0 = <&sde_dsi_active &sde_te_active>;
-		pinctrl-1 = <&sde_dsi_sleep &sde_te_sleep>;
-		pinctrl-names = "default", "sleep";
 
 		ports {
 			#address-cells = <1>;
@@ -1135,34 +1158,6 @@
 		pins = "gpio77";
 		function = "gpio";
 		bias-pull-up;
-	};
-
-	sde_dsi_active: sde-dsi-active-state {
-		pins = "gpio75";
-		function = "gpio";
-		drive-strength = <8>;
-		bias-disable;
-	};
-
-	sde_dsi_sleep: sde-dsi-sleep-state {
-		pins = "gpio75";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-	};
-
-	sde_te_active: sde-te-active-state {
-		pins = "gpio66";
-		function = "mdp_vsync";
-		drive-strength = <2>;
-		bias-pull-down;
-	};
-
-	sde_te_sleep: sde-te-sleep-state {
-		pins = "gpio66";
-		function = "mdp_vsync";
-		drive-strength = <2>;
-		bias-pull-down;
 	};
 
 	ts_int_active: ts-int-active-state {
