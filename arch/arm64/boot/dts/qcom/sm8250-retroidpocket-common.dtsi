@@ -1233,6 +1233,13 @@
 
 	gamepad {
 		compatible = "ayn,odin2-gamepad";
+
+		gamepad-name = "Retroid Pocket Controller";
+		gamepad-bus = <0x0003>;
+		gamepad-vid = <0x2020>;
+		gamepad-pid = <0x3001>;
+		gamepad-rev = <0x0001>;
+
 		vdd-supply = <&vreg_mcu_3v3>;
 		enable-gpios = <&tlmm 111 GPIO_ACTIVE_HIGH>;
 		pinctrl-0 = <&mcu_en_default>;
