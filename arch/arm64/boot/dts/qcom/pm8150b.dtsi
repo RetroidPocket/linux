@@ -53,6 +53,27 @@
 			status = "disabled";
 		};
 
+		pm8150b_charger: charger@1000 {
+			compatible = "qcom,pm8150b-charger";
+			reg = <0x1000>;
+
+			interrupts = <0x2 0x13 0x4 IRQ_TYPE_EDGE_BOTH>,
+				     <0x2 0x12 0x2 IRQ_TYPE_EDGE_BOTH>,
+				     <0x2 0x16 0x1 IRQ_TYPE_EDGE_RISING>,
+				     <0x2 0x13 0x7 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "usbin-plugin",
+					  "bat-ov",
+					  "wdog-bark",
+					  "usbin-icl-change";
+
+			io-channels = <&pm8150b_adc ADC5_USB_IN_I>,
+				      <&pm8150b_adc ADC5_USB_IN_V_16>;
+			io-channel-names = "usb_in_i_uv",
+					   "usb_in_v_div_16";
+
+			status = "disabled";
+		};
+
 		pm8150b_vbus: usb-vbus-regulator@1100 {
 			compatible = "qcom,pm8150b-vbus-reg";
 			status = "disabled";
@@ -108,34 +129,6 @@
 			#thermal-sensor-cells = <0>;
 		};
 
-		pm8150b_charger: charger@1000 {
-			compatible = "qcom,pm8150b-charger";
-			reg = <0x1000>;
-
-			interrupts = <0x2 0x13 0x4 IRQ_TYPE_EDGE_BOTH>,
-				     <0x2 0x12 0x2 IRQ_TYPE_EDGE_BOTH>,
-				     <0x2 0x16 0x1 IRQ_TYPE_EDGE_RISING>,
-				     <0x2 0x13 0x7 IRQ_TYPE_EDGE_RISING>;
-			interrupt-names = "usbin-plugin",
-					  "bat-ov",
-					  "wdog-bark",
-					  "usbin-icl-change";
-
-			io-channels = <&pm8150b_adc 7>,
-				      <&pm8150b_adc 8>;
-			io-channel-names = "usb_in_i_uv", "usb_in_v_div_16";
-
-			status = "disabled";
-		};
-
-		pm8150b_fg: fuel-gauge@4000 {
-			compatible = "qcom,pm8150b-fg";
-			reg = <0x4000>;
-			interrupts = <0x2 0x40 0x3 IRQ_TYPE_EDGE_RISING>;
-			interrupt-names = "soc-delta";
-			status = "disabled";
-		};
-
 		pm8150b_adc: adc@3100 {
 			compatible = "qcom,spmi-adc5";
 			reg = <0x3100>;
@@ -188,6 +181,14 @@
 			#thermal-sensor-cells = <1>;
 			#address-cells = <1>;
 			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		pm8150b_fg: fuel-gauge@4000 {
+			compatible = "qcom,pm8150b-fg";
+			reg = <0x4000>;
+			interrupts = <0x2 0x40 0x3 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "soc-delta";
 			status = "disabled";
 		};
 
