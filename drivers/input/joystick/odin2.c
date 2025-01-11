@@ -5,6 +5,7 @@
  * Copyright (C) 2024 Molly Sophia <mollysophia379@gmail.com>
  * Copyright (C) 2024 BigfootACA <bigfoot@classfun.cn>
  * Copyright (C) 2024 Teguh Sobirin <teguh@sobir.in>
+ * Copyright (C) 2025 ROCKNIX Team <admin@rocknix.org>
  *
  */
 
@@ -181,6 +182,14 @@ static const struct serdev_device_ops gamepad_mcu_uart_client_ops = {
 	.receive_buf = gamepad_mcu_uart_rx_bytes,
 };
 
+extern int qcom_spmi_haptics_rumble(unsigned int strong_magnitude, unsigned int weak_magnitude);
+
+static int retroid_rumble_play(struct input_dev *dev, void *data, struct ff_effect *effect)
+{
+	return qcom_spmi_haptics_rumble(effect->u.rumble.strong_magnitude,
+					effect->u.rumble.weak_magnitude);
+}
+
 static int gamepad_mcu_uart_probe(struct serdev_device *serdev)
 {
 	struct device *dev = &serdev->dev;
@@ -278,6 +287,10 @@ static int gamepad_mcu_uart_probe(struct serdev_device *serdev)
 	input_set_abs_params(gamepad_dev->dev_input, ABS_HAT2X, 0, 1830, 0, 30);
 	input_set_abs_params(gamepad_dev->dev_input, ABS_HAT2Y, 0, 1830, 0, 30);
 
+		/*__set_bit(EV_FF, gamepad_dev->dev_input->evbit);*/
+		input_set_capability(gamepad_dev->dev_input, EV_FF, FF_RUMBLE);
+		input_ff_create_memless(gamepad_dev->dev_input, NULL, retroid_rumble_play);
+
 	ret = input_register_device(gamepad_dev->dev_input);
 	if (ret)
 		return dev_err_probe(dev, ret, "Could not register input device\n");
@@ -310,4 +323,5 @@ MODULE_DESCRIPTION("Gamepad driver for Ayn Odin2");
 MODULE_AUTHOR("Molly Sophia <mollysophia379@gmail.com>");
 MODULE_AUTHOR("BigfootACA <bigfoot@classfun.cn>");
 MODULE_AUTHOR("Teguh Sobirin <teguh@sobir.in>");
+MODULE_AUTHOR("ROCKNIX Team <admin@rocknix.org>");
 MODULE_ALIAS("platform:" DRIVER_NAME);

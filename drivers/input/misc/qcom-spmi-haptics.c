@@ -23,6 +23,7 @@
 #include <linux/slab.h>
 #include <linux/time.h>
 #include <linux/types.h>
+#include <linux/export.h>
 
 #define HAP_STATUS_1_REG		0x0A
 #define HAP_BUSY_BIT			BIT(1)
@@ -194,6 +195,8 @@ struct spmi_haptics {
 
 	struct mutex play_lock;
 };
+
+static struct spmi_haptics *global_haptics;
 
 static inline bool is_secure_addr(u16 addr)
 {
@@ -775,6 +778,22 @@ end:
 	return 0;
 }
 
+int qcom_spmi_haptics_rumble(unsigned int strong_magnitude, unsigned int weak_magnitude)
+{
+	struct ff_effect effect;
+
+	if (!global_haptics)
+		return -ENODEV;
+
+	memset(&effect, 0, sizeof(effect));
+	effect.type = FF_RUMBLE;
+	effect.u.rumble.strong_magnitude = strong_magnitude;
+	effect.u.rumble.weak_magnitude = weak_magnitude;
+
+	return spmi_haptics_play_effect(global_haptics->haptics_input_dev, NULL, &effect);
+}
+EXPORT_SYMBOL_GPL(qcom_spmi_haptics_rumble);
+
 static int spmi_haptics_probe(struct platform_device *pdev)
 {
 	struct spmi_haptics *haptics;
@@ -922,6 +941,8 @@ static int spmi_haptics_probe(struct platform_device *pdev)
 		goto register_fail;
 	}
 
+	global_haptics = haptics;
+
 	return 0;
 
 register_fail:
@@ -953,6 +974,9 @@ static void spmi_haptics_remove(struct platform_device *pdev)
 
 	if (haptics->boost)
 		gpiod_set_value_cansleep(haptics->boost, 0);
+
+	if (global_haptics == haptics)
+		global_haptics = NULL;
 }
 
 static void spmi_haptics_shutdown(struct platform_device *pdev)
@@ -965,6 +989,9 @@ static void spmi_haptics_shutdown(struct platform_device *pdev)
 
 	if (haptics->boost)
 		gpiod_set_value_cansleep(haptics->boost, 0);
+
+	if (global_haptics == haptics)
+		global_haptics = NULL;
 }
 
 static const struct of_device_id spmi_haptics_match_table[] = {
