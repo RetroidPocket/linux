@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/serdev.h>
 #include <linux/slab.h>
+#include <linux/platform_device.h>
 #include <uapi/linux/sched/types.h>
 
 #define DRIVER_NAME "odin2-gamepad"
@@ -58,7 +59,11 @@ struct gamepad_device {
 	struct gpio_desc *enable_gpio;
 	struct gpio_desc *reset_gpio;
 	struct input_dev *dev_input;
+	struct platform_device *platform_dev;
 };
+
+static bool rumble_enable = true;
+module_param(rumble_enable, bool, 0660);
 
 static u8 gamepad_data_checksum(const u8 *data, size_t count)
 {
@@ -186,9 +191,34 @@ extern int qcom_spmi_haptics_rumble(unsigned int strong_magnitude, unsigned int 
 
 static int retroid_rumble_play(struct input_dev *dev, void *data, struct ff_effect *effect)
 {
+	if (!rumble_enable)
+		return 0;
+
 	return qcom_spmi_haptics_rumble(effect->u.rumble.strong_magnitude,
 					effect->u.rumble.weak_magnitude);
 }
+
+static ssize_t rumble_enable_show(struct device *dev, struct device_attribute *attr,
+				  char *buf)
+{
+	return sprintf(buf, "%d\n", rumble_enable);
+}
+
+static ssize_t rumble_enable_store(struct device *dev, struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int ret;
+	bool val;
+
+	ret = kstrtobool(buf, &val);
+	if (ret)
+		return ret;
+
+	rumble_enable = val;
+	return count;
+}
+
+static DEVICE_ATTR_RW(rumble_enable);
 
 static int gamepad_mcu_uart_probe(struct serdev_device *serdev)
 {
@@ -287,13 +317,22 @@ static int gamepad_mcu_uart_probe(struct serdev_device *serdev)
 	input_set_abs_params(gamepad_dev->dev_input, ABS_HAT2X, 0, 1830, 0, 30);
 	input_set_abs_params(gamepad_dev->dev_input, ABS_HAT2Y, 0, 1830, 0, 30);
 
-		/*__set_bit(EV_FF, gamepad_dev->dev_input->evbit);*/
 		input_set_capability(gamepad_dev->dev_input, EV_FF, FF_RUMBLE);
 		input_ff_create_memless(gamepad_dev->dev_input, NULL, retroid_rumble_play);
 
 	ret = input_register_device(gamepad_dev->dev_input);
 	if (ret)
 		return dev_err_probe(dev, ret, "Could not register input device\n");
+
+	gamepad_dev->platform_dev = platform_device_register_simple(DRIVER_NAME, -1, NULL, 0);
+	if (IS_ERR(gamepad_dev->platform_dev)) {
+		ret = PTR_ERR(gamepad_dev->platform_dev);
+		dev_warn(dev, "Failed to register platform device: %d\n", ret);
+	} else {
+		ret = device_create_file(&gamepad_dev->platform_dev->dev, &dev_attr_rumble_enable);
+		if (ret)
+			dev_warn(dev, "Failed to create rumble_enable sysfs on platform device: %d\n", ret);
+	}
 
 	serdev_device_set_client_ops(serdev, &gamepad_mcu_uart_client_ops);
 
