@@ -1482,6 +1482,14 @@ void msm_dp_display_atomic_disable(struct msm_dp *dp)
 	if (!dp->power_on)
 		return;
 
+	/*
+	 * Nor after an unplug: the sink is gone and, on USB-C, the PHY has
+	 * already been switched away from DP, so PUSH_IDLE only times out.
+	 */
+	scoped_guard(mutex, &msm_dp_display->plugged_lock)
+		if (!msm_dp_display->plugged)
+			return;
+
 	msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
 }
 
