@@ -332,7 +332,14 @@ static bool msm_dp_display_host_phy_init(struct msm_dp_display_private *dp)
 		dp->phy_initialized);
 
 	if (!dp->phy_initialized) {
-		msm_dp_ctrl_phy_init(dp->ctrl);
+		/*
+		 * A failed phy_init() leaves the PHY's init count at zero. If
+		 * it were recorded as initialised, the matching phy_exit()
+		 * would take the count to -1 and no later phy_init() would
+		 * ever run the PHY's init again.
+		 */
+		if (msm_dp_ctrl_phy_init(dp->ctrl))
+			return false;
 		dp->phy_initialized = true;
 		return true;
 	}
