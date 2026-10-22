@@ -410,6 +410,7 @@ static int msm_dp_display_handle_irq_hpd(struct msm_dp_display_private *dp)
 static int msm_dp_hpd_plug_handle(struct msm_dp_display_private *dp)
 {
 	int ret;
+	bool was_plugged;
 	struct platform_device *pdev = dp->msm_dp_display.pdev;
 
 	drm_dbg_dp(dp->drm_dev, "Before, type=%d sink_count=%d\n",
@@ -417,6 +418,7 @@ static int msm_dp_hpd_plug_handle(struct msm_dp_display_private *dp)
 			dp->link->sink_count);
 
 	guard(mutex)(&dp->plugged_lock);
+	was_plugged = dp->plugged;
 
 	ret = pm_runtime_resume_and_get(&pdev->dev);
 	if (ret) {
@@ -435,6 +437,13 @@ static int msm_dp_hpd_plug_handle(struct msm_dp_display_private *dp)
 			dp->link->sink_count);
 
 	dp->plugged = true;
+
+	/*
+	 * Being plugged holds the controller on with one reference, which
+	 * the unplug drops. Detect may have taken it already.
+	 */
+	if (was_plugged)
+		pm_runtime_put_sync(&pdev->dev);
 
 	return ret;
 };
@@ -902,7 +911,7 @@ enum drm_connector_status msm_dp_bridge_detect(struct drm_bridge *bridge,
 	struct msm_dp_display_private *priv;
 	u8 dpcd[DP_RECEIVER_CAP_SIZE];
 	struct drm_dp_desc desc;
-	bool phy_deinit;
+	bool phy_deinit, was_plugged;
 	int ret;
 
 	dp = to_dp_bridge(bridge)->msm_dp_display;
@@ -910,6 +919,7 @@ enum drm_connector_status msm_dp_bridge_detect(struct drm_bridge *bridge,
 	priv = container_of(dp, struct msm_dp_display_private, msm_dp_display);
 
 	guard(mutex)(&priv->plugged_lock);
+	was_plugged = priv->plugged;
 	ret = pm_runtime_resume_and_get(&dp->pdev->dev);
 	if (ret) {
 		DRM_ERROR("failed to pm_runtime_resume\n");
@@ -967,6 +977,14 @@ end:
 
 		pm_runtime_put_sync(&dp->pdev->dev);
 	}
+
+	/*
+	 * Being plugged holds one reference, kept by whichever call found
+	 * the sink. Every later detect gives its own back, or the controller
+	 * never suspends again; one that lost the sink drops that one too.
+	 */
+	if (was_plugged)
+		pm_runtime_put_sync(&dp->pdev->dev);
 
 	return status;
 }
